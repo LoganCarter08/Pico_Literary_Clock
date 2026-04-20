@@ -4,3 +4,11 @@ ADAFRUIT_AIO_USERNAME = "<your-adafruit-username>"
 ADAFRUIT_AIO_KEY      = "<your-adafruit-key>"
 # Timezone names from http://worldtimeapi.org/timezones
 TIMEZONE="<your-timezone>"
+# only used if military time is false. Show a.m. and p.m. on the time  
+DISPLAY_MERIDIEM = "true"
+USE_MILITARY_TIME = "false"
+SCREEN_OFF_TIME = "23:0"
+SCREEN_ON_TIME = "5:0"
+BACKGROUND_COLOR = "BLACK" 
+TEXT_COLOR = "WHITE" 
+HIGHLIGHT_COLOR = "CYAN"
