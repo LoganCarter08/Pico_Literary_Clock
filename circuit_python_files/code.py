@@ -165,8 +165,8 @@ def getQuote(lastTime) -> None:
     quote = {
         "fullQuote": "No quote found for this time :( I'm sorry",
         "highlight": "I'm sorry",
-        "book": "A Story of a Sad Boy",
-        "author": "Logan"
+        "book": "Book not found",
+        "author": ""
     }
     try:
         quotePath = "lib/quotes/" + lastTime[0] + "_" + lastTime[1] + ".json"
