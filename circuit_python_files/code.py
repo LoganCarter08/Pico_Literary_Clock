@@ -15,18 +15,19 @@ import busio
 import digitalio
 from adafruit_ra8875 import ra8875
 from adafruit_ra8875.ra8875 import color565
-#import supervisor
+import supervisor
 import json 
 
-
-BLACK = color565(10, 0, 0)
-RED = color565(255, 0, 0)
-BLUE = color565(0, 0, 255)
-GREEN = color565(0, 255, 0)
-YELLOW = color565(255, 255, 0)
-CYAN = color565(0, 255, 255)
-MAGENTA = color565(255, 0, 255)
-WHITE = color565(255, 255, 255)
+COLORS = {
+    "BLACK": color565(10, 0, 0),
+    "RED": color565(255, 0, 0),
+    "BLUE": color565(0, 0, 255),
+    "GREEN": color565(0, 255, 0),
+    "YELLOW": color565(255, 255, 0),
+    "CYAN": color565(0, 255, 255),
+    "MAGENTA": color565(255, 0, 255),
+    "WHITE": color565(255, 255, 255),
+}
 
 LINE_HEIGHT = 15
 QUOTE_MARGIN = 30
@@ -37,15 +38,15 @@ MAX_X = 470
 MAX_Y = 270
 MAX_LINE_CHAR_COUNT = math.floor((MAX_X - (QUOTE_MARGIN * 2)) / AVERAGE_CHAR_WIDTH) #51
 
-BACKGROUND_COLOR = BLACK #color565(227, 95, 196)
-TEXT_COLOR = WHITE
-HIGHLIGHT_COLOR = CYAN
+BACKGROUND_COLOR = COLORS[os.getenv("BACKGROUND_COLOR")]
+TEXT_COLOR = COLORS[os.getenv("TEXT_COLOR")]
+HIGHLIGHT_COLOR = COLORS[os.getenv("HIGHLIGHT_COLOR")]
+MISSING_QUOTES = ["11:46", "12:31", "13:36", "18:44"]
 
-SCREEN_OFF_TIME = [23, 0]
-SCREEN_ON_TIME = [5, 0]
-
-
-
+DISPLAY_MERIDIEM = os.getenv("DISPLAY_MERIDIEM").lower() == "true"
+USE_MILITARY_TIME = os.getenv("USE_MILITARY_TIME").lower() == "true"
+SCREEN_OFF_TIME = [int(x) for x in os.getenv("SCREEN_OFF_TIME").split(":")]
+SCREEN_ON_TIME = [int(x) for x in os.getenv("SCREEN_ON_TIME").split(":")]
 
 # Configuration for CS and RST pins:
 cs_pin = digitalio.DigitalInOut(board.GP21)
@@ -61,10 +62,9 @@ spi = busio.SPI(clock=board.GP18, MOSI=board.GP19, MISO=board.GP16)
 # Create and setup the RA8875 display:
 display = ra8875.RA8875(spi, cs=cs_pin, rst=rst_pin, baudrate=BAUDRATE)
 display.init()
+
 # lowering the brightness causes buzzing noises.
 #display.brightness(200)
-display.fill(BACKGROUND_COLOR)
-display.txt_trans(WHITE)
 
 
 # Get our username, key and desired timezone
@@ -145,55 +145,63 @@ def getTime(timesRan, lastTime) -> tuple[list[str], float, int]:
 def displayTime(lastTime) -> None:
     display.txt_trans(TEXT_COLOR)
     display.txt_size(0)
+    time = ""
 
     hours = lastTime[0]
-    if int(lastTime[0]) == 0:
-        hours = "12"
-    elif int(lastTime[0]) > 12:
-        hours = str(int(lastTime[0]) % 12)
-        
-    time = hours + ":" + lastTime[1]
+    if USE_MILITARY_TIME: 
+        time = hours + ":" + lastTime[1]
+    else: 
+        meridiem = "a.m."
+        if int(hours) == 0:
+            hours = "12"
+        elif int(hours) > 12:
+            hours = str(int(hours) % 12)
+            meridiem = "p.m."
+            
+        time = hours + ":" + lastTime[1] + (" " + meridiem if DISPLAY_MERIDIEM else "")
 
-    if time[0] == "0":
-        time = time[1:]
+        if time[0] == "0":
+            time = time[1:]
         
     display.txt_set_cursor(math.floor((MAX_X / 2) - ((AVERAGE_CHAR_WIDTH * len(time)) / 2)), 10)
     display.txt_write(time)
 
-
+def checkIfReloadNeeded(time): 
+    if time not in MISSING_QUOTES:
+        # This is a goofy solution, but after running for a long time 
+        # circuitpython seems to lose the ability to find files. 
+        # It will not throw an error, it just can't find them anymore. 
+        # if that happens, force a reload. 
+        print("Reloading")
+        supervisor.reload() 
+    else: 
+        print("Quote is known as missing") 
+    
 def getQuote(lastTime) -> None:
     quote = {
         "fullQuote": "No quote found for this time :( I'm sorry",
         "highlight": "I'm sorry",
-        "book": "Book not found",
+        "book": "No book found",
         "author": ""
     }
+ 
+    quotePath = "lib/quotes/" + lastTime[0] + "_" + lastTime[1] + ".json"
     try:
-        quotePath = "lib/quotes/" + lastTime[0] + "_" + lastTime[1] + ".json"
-        try:
-            if os.stat(quotePath):
-                with open(quotePath, "r") as file:
-                    data = json.load(file)
-                
-                    #quoteModule = __import__("quotes." + lastTime[0] + "_" + lastTime[1], None, None, ["*"])
-                    #randQuoteInd = random.randint(0, len(quoteModule.quote) - 1)
-                    #quote = quoteModule.quote[randQuoteInd]
-                    
-                    randQuoteInd = random.randint(0, len(data) - 1)
-                    quote = data[randQuoteInd]
-        except OSError:
-            # os.stat is kind of a dumb way to do this in circuitpython because 
-            # it just throws an error if the file isn't found. 
-            pass 
+        # this will throw an OSError if path doesn't exist
+        os.stat(quotePath)
+            
+        with open(quotePath, "r") as file:
+            data = json.load(file)                    
+            randQuoteInd = random.randint(0, len(data) - 1)
+            quote = data[randQuoteInd]
 
-        #del quoteModule
-        #del sys.modules["quotes." + lastTime[0] + "_" + lastTime[1]]
-        #gc.collect()
+    except OSError:
+        # os.stat is kind of a dumb way to do this in circuitpython because 
+        # it just throws an error if the file isn't found. 
+        checkIfReloadNeeded(lastTime[0] + ":" + lastTime[1])
     except Exception as e:
         print(lastTime)
         print(e)
-        #if (lastTime[0], lastTime[1]) not in [("11", "46"), ("12", "31"), ("13", "36"), ("18", "44")]:
-            #supervisor.reload() 
         quote["book"] = str(e)
 
     return quote
@@ -201,9 +209,8 @@ def getQuote(lastTime) -> None:
 def splitQuote(quote) -> tuple[list[str], int, int]:
     timeLoc = quote["fullQuote"].find(quote["highlight"])
     REPLACE_STR = "%&%"
+    
     quote["fullQuote"] = quote["fullQuote"].replace(quote["highlight"], REPLACE_STR)
-
-    #print(quote["fullQuote"])
 
     forcedLines = []
 
@@ -217,49 +224,51 @@ def splitQuote(quote) -> tuple[list[str], int, int]:
 
         if skipCount > 0:
             skipCount = skipCount - 1
-        elif quote["fullQuote"][i] == " ":
-            nextSpace = -1
-            for j in range(i + 1, len(quote["fullQuote"])):
-                if quote["fullQuote"][j] == " ":
-                    nextSpace = j - i
-                    break
-
-            if len(tempChars) + nextSpace > MAX_LINE_CHAR_COUNT or (nextSpace == -1 and len(tempChars) + len(quote["fullQuote"]) - i > MAX_LINE_CHAR_COUNT):
-                added = True
-            #elif len(tempChars) + nextSpace == len(tempChars):
-            #    pass
-            elif len(tempChars) > 0:
-                tempChars = tempChars + " "
         elif i < len(quote["fullQuote"]) - 3 and quote["fullQuote"][i : i + 4].lower() == "<br>":
             skipCount = 3
-            added = True
-        elif i < len(quote["fullQuote"]) - 5 and quote["fullQuote"][i : i + 5].lower() == "<br/>":
-            skipCount = 4
             added = True
         elif i < len(quote["fullQuote"]) - (len(REPLACE_STR) - 1) and quote["fullQuote"][i : i + len(REPLACE_STR)] == REPLACE_STR:
             skipCount = len(REPLACE_STR) - 1
             addHighlight = True
+        elif quote["fullQuote"][i] == " ":
+            nextSpace = -1
+            for j in range(i + 1, len(quote["fullQuote"])):
+                found = False 
+                if quote["fullQuote"][j] == " ":
+                    found = True 
+                elif quote["fullQuote"][j] == "<" and j + 3 <= len(quote["fullQuote"]) - 1 and quote["fullQuote"][j : j + 4] == "<br>": 
+                    found = True 
+                
+                # I think this needs to handle the case if REPLACE_STR was found while getting next space
+                # to know the full length, but right now it is working and I don't think it should be. 
+                if found: 
+                    nextSpace = j - i
+                    break
+            if len(tempChars) + nextSpace > MAX_LINE_CHAR_COUNT or (nextSpace == -1 and len(tempChars) + len(quote["fullQuote"]) - i > MAX_LINE_CHAR_COUNT):
+                added = True
+            elif len(tempChars) > 0:
+                tempChars = tempChars + " "
         else:
             tempChars = tempChars + quote["fullQuote"][i]
 
-        if added:
-            if len(tempChars) > 0:
+        if added and len(tempChars) > 0:
+            forcedLines.append(tempChars)
+            tempChars = ""
+            
+        if addHighlight:
+            # if we can't fit it in this line then add to forcedLines
+            if len(tempChars) + len(quote["highlight"]) + HIGHLIGHT_SPACING > MAX_LINE_CHAR_COUNT:
                 forcedLines.append(tempChars)
                 tempChars = ""
-        if addHighlight:
-                # if we can't fit it in this line then add to forcedLines
-                if len(tempChars) + len(quote["highlight"]) + HIGHLIGHT_SPACING > MAX_LINE_CHAR_COUNT:
-                    forcedLines.append(tempChars)
-                    tempChars = ""
 
-                highlightIndex.append(len(forcedLines))
-                highlightSubIndex.append(len(tempChars) + math.floor(HIGHLIGHT_SPACING / 2))
+            highlightIndex.append(len(forcedLines))
+            highlightSubIndex.append(len(tempChars) + math.floor(HIGHLIGHT_SPACING / 2))
 
-                for j in range(len(quote["highlight"]) + HIGHLIGHT_SPACING):
-                    tempChars = tempChars + " "
+            for j in range(len(quote["highlight"]) + HIGHLIGHT_SPACING):
+                tempChars = tempChars + " "
 
-                #forcedLines.append(quote["highlight"])
-                addHighlight = False
+            #forcedLines.append(quote["highlight"])
+            addHighlight = False
 
     if len(tempChars) == 1:
         forcedLines[len(forcedLines) - 1] = forcedLines[len(forcedLines) - 1] + tempChars
@@ -269,30 +278,42 @@ def splitQuote(quote) -> tuple[list[str], int, int]:
     return forcedLines, highlightIndex, highlightSubIndex
 
 
-def displaySource(quote, lineLength) -> None:
-    titleWidth = len("- " + quote["book"]) * AVERAGE_CHAR_WIDTH
-    authorWidth = len("  by " + quote["author"]) * AVERAGE_CHAR_WIDTH
-
+def displaySource(quote, lineLength) -> None:   
+    author = "by " + quote["author"]
+    authorWidth = len(author) * AVERAGE_CHAR_WIDTH
+    
+    title = "- " + quote["book"] 
+    marginCharCount = math.floor(AUTHOR_MARGIN / AVERAGE_CHAR_WIDTH)
+    
     if lineLength < 13:
+        if len(title) >= MAX_LINE_CHAR_COUNT - marginCharCount:
+            title = title[: MAX_LINE_CHAR_COUNT - 3] + "..." 
+            
+        titleWidth = len(title) * AVERAGE_CHAR_WIDTH
+    
         titleX = math.floor(MAX_X - AUTHOR_MARGIN - titleWidth)
-        authorX = math.floor(MAX_X - AUTHOR_MARGIN - authorWidth)
+        authorX = math.floor(MAX_X - AUTHOR_MARGIN - authorWidth - (2 * AVERAGE_CHAR_WIDTH))
 
         authorTitleCombX = max(AUTHOR_MARGIN, min(titleX, authorX))
-
+        
         display.txt_set_cursor(authorTitleCombX, math.floor(MAX_Y - (LINE_HEIGHT * 2) - AUTHOR_MARGIN))
-        display.txt_write("- " + quote["book"])
+        display.txt_write(title)
         display.txt_set_cursor(authorTitleCombX + (2 * AVERAGE_CHAR_WIDTH), math.floor(MAX_Y - LINE_HEIGHT - AUTHOR_MARGIN))
-        display.txt_write("by " + quote["author"])
+        if author != "":
+            display.txt_write(author)
     else:
-        # let's hope it fits on one line
-        comboX = max(0, math.floor(MAX_X - AUTHOR_MARGIN - titleWidth - authorWidth))
+        combo = title + " " + author
+        if len(combo) >= MAX_LINE_CHAR_COUNT - marginCharCount:
+            combo = title[: MAX_LINE_CHAR_COUNT - len(author) - 4] + "... " + author 
+            
+        comboWidth = len(combo) * AVERAGE_CHAR_WIDTH
+        
+        comboX = max(0, math.floor(MAX_X - AUTHOR_MARGIN - comboWidth))
         display.txt_set_cursor(comboX, math.floor(MAX_Y - LINE_HEIGHT - AUTHOR_MARGIN))
-        display.txt_write("- " + quote["book"] + " by " + quote["author"])
+        display.txt_write(combo)
 
 def displayQuote(lastTime) -> None:
     quote = getQuote(lastTime)
-    #quote["highlight"] = 'eleven-forty-eight'
-    #quote["fullQuote"] = "\"Well, you better go back with me. They'll be mighty glad to see you.\"<br/>\"We can make that eleven-forty-eight if we hurry,\" he said. \"I'll have to change a few things.\""
 
     print("-" * 40)
     print(lastTime[0] + ":" + lastTime[1])
@@ -326,12 +347,9 @@ timesRan = 61
 lastTime = ["", ""]
 lastScreenState = True
 while True:
-    #display.fill(BACKGROUND_COLOR)
     display.fill_rect(0, 0, MAX_X + 20, MAX_Y + 20, BACKGROUND_COLOR)
 
     lastTime, sleepTime, timesRan = getTime(timesRan, lastTime)
-    #lastTime[0] = "11"
-    #lastTime[1] = "46"
 
     if (int(lastTime[0]) >= SCREEN_OFF_TIME[0]) or (int(lastTime[0]) <= SCREEN_ON_TIME[0]):
         if lastScreenState:
@@ -346,7 +364,6 @@ while True:
         display.turn_on(True)
         display.brightness(255)
 
-    print(timesRan)
     displayTime(lastTime)
     displayQuote(lastTime)
 

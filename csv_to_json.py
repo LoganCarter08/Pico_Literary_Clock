@@ -5,7 +5,7 @@ class Quote:
         splitted = line.split("|")
         self.time = splitted[0]
         self.highlight = splitted[1] 
-        self.fullQuote = splitted[2]
+        self.fullQuote = splitted[2].replace("<br/>", "<br>")
         self.book = splitted[3] 
         self.author = splitted[4]
     
