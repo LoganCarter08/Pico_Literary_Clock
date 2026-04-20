@@ -1,0 +1,6 @@
+CIRCUITPY_WIFI_SSID = "<your-network-id>"
+CIRCUITPY_WIFI_PASSWORD = "<your-network-password>"
+ADAFRUIT_AIO_USERNAME = "<your-adafruit-username>"
+ADAFRUIT_AIO_KEY      = "<your-adafruit-key>"
+# Timezone names from http://worldtimeapi.org/timezones
+TIMEZONE="<your-timezone>"
