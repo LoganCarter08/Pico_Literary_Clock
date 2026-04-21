@@ -45,8 +45,12 @@ MISSING_QUOTES = ["11:46", "12:31", "13:36", "18:44"]
 
 DISPLAY_MERIDIEM = os.getenv("DISPLAY_MERIDIEM").lower() == "true"
 USE_MILITARY_TIME = os.getenv("USE_MILITARY_TIME").lower() == "true"
-SCREEN_OFF_TIME = [int(x) for x in os.getenv("SCREEN_OFF_TIME").split(":")]
-SCREEN_ON_TIME = [int(x) for x in os.getenv("SCREEN_ON_TIME").split(":")]
+
+def timeToDecimal(time):
+    return float(time[0]) + (float(time[1]) / 60)
+    
+SCREEN_OFF_TIME = timeToDecimal([int(x) for x in os.getenv("SCREEN_OFF_TIME").split(":")])
+SCREEN_ON_TIME = timeToDecimal([int(x) for x in os.getenv("SCREEN_ON_TIME").split(":")])
 
 # Configuration for CS and RST pins:
 cs_pin = digitalio.DigitalInOut(board.GP21)
@@ -283,11 +287,12 @@ def displaySource(quote, lineLength) -> None:
     authorWidth = len(author) * AVERAGE_CHAR_WIDTH
     
     title = "- " + quote["book"] 
-    marginCharCount = math.floor(AUTHOR_MARGIN / AVERAGE_CHAR_WIDTH)
+
+    maxSourceCharWidth = math.floor((MAX_X - (2 * AUTHOR_MARGIN)) / AVERAGE_CHAR_WIDTH)
     
     if lineLength < 13:
-        if len(title) >= MAX_LINE_CHAR_COUNT - marginCharCount:
-            title = title[: MAX_LINE_CHAR_COUNT - 3] + "..." 
+        if len(title) >= maxSourceCharWidth:
+            title = title[: maxSourceCharWidth - 3] + "..." 
             
         titleWidth = len(title) * AVERAGE_CHAR_WIDTH
     
@@ -303,8 +308,8 @@ def displaySource(quote, lineLength) -> None:
             display.txt_write(author)
     else:
         combo = title + " " + author
-        if len(combo) >= MAX_LINE_CHAR_COUNT - marginCharCount:
-            combo = title[: MAX_LINE_CHAR_COUNT - len(author) - 4] + "... " + author 
+        if len(combo) >= maxSourceCharWidth:
+            combo = title[: maxSourceCharWidth - len(author) - 4] + "... " + author 
             
         comboWidth = len(combo) * AVERAGE_CHAR_WIDTH
         
@@ -342,7 +347,6 @@ def displayQuote(lastTime) -> None:
 
     displaySource(quote, len(forcedLines))
 
-
 timesRan = 61
 lastTime = ["", ""]
 lastScreenState = True
@@ -350,8 +354,10 @@ while True:
     display.fill_rect(0, 0, MAX_X + 20, MAX_Y + 20, BACKGROUND_COLOR)
 
     lastTime, sleepTime, timesRan = getTime(timesRan, lastTime)
-
-    if (int(lastTime[0]) >= SCREEN_OFF_TIME[0]) or (int(lastTime[0]) <= SCREEN_ON_TIME[0]):
+    
+    decimalCurrentTime = timeToDecimal(lastTime)
+    
+    if (decimalCurrentTime >= SCREEN_OFF_TIME) and (decimalCurrentTime <= SCREEN_ON_TIME):
         if lastScreenState:
             lastScreenState = False
             display.brightness(0)
