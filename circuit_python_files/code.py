@@ -99,8 +99,6 @@ def incTime(lastTime) -> int:
         lastTime[0] = 0
     return lastTime
 
-
-
 def getRemoteTime() -> list[str]:
     gc.collect()
     try:
@@ -113,8 +111,6 @@ def getRemoteTime() -> list[str]:
         return splitTime
     except:
         return ["", ""]
-
-
 
 def getTime(timesRan, lastTime) -> tuple[list[str], float, int]:
     # get time every half hour to make sure we haven't crept
@@ -144,7 +140,6 @@ def getTime(timesRan, lastTime) -> tuple[list[str], float, int]:
         lastTime = incTime(lastTime)
 
     return lastTime, sleepTime, timesRan
-
 
 def displayTime(lastTime) -> None:
     display.txt_trans(TEXT_COLOR)
@@ -211,11 +206,8 @@ def getQuote(lastTime) -> None:
     return quote
 
 def splitQuote(quote) -> tuple[list[str], int, int]:
-    timeLoc = quote["fullQuote"].find(quote["highlight"])
     REPLACE_STR = "%&%"
-    
     quote["fullQuote"] = quote["fullQuote"].replace(quote["highlight"], REPLACE_STR)
-
     forcedLines = []
 
     highlightIndex = []
