@@ -1,8 +1,11 @@
-# Literary Clock Running on a Raspberry Pi Pico W
+# DIY Literary Clock Running on a Raspberry Pi Pico W
 
 Display a book quote for each minute of the day!
 
-litclock_annotated.csv is sourced from https://github.com/JohannesNE/literature-clock/tree/master
+![on image](images/assembled.jpg)
+![cad assembled](images/cad_assembled.png)
+
+Quotes (litclock_annotated.csv) were sourced from https://github.com/JohannesNE/literature-clock/tree/master
 
 ## Hardware and Tools Required:
 
@@ -34,10 +37,10 @@ litclock_annotated.csv is sourced from https://github.com/JohannesNE/literature-
 1. Sign into [Adafruit IO](io.adafruit.com) with your Adafruit account.
 1. Click My Key on the top bar.
 1. Open circuit_python_files/settings.toml
-   a. Replace ADAFRUIT_AIO_USERNAME and ADAFRUIT_AIO_KEY with your Adafruit account details.
-   b. Use the [TZ identifier values on Wikipedia](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) to set your timezone.
-   c. Set CIRCUITPY_WIFI_SSID as your wifi name.
-   d. Set CIRCUITPY_WIFI_PASSWORD as your wifi password.
+1. Replace ADAFRUIT_AIO_USERNAME and ADAFRUIT_AIO_KEY with your Adafruit account details.
+1. Use the [TZ identifier values on Wikipedia](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) to set your timezone.
+1. Set CIRCUITPY_WIFI_SSID as your wifi name.
+1. Set CIRCUITPY_WIFI_PASSWORD as your wifi password.
 1. Change the rest of the settings in settings.toml to match your preferences. Descriptions of each setting can be found below.
 
    Note: Some sample colors are provided. More can be added within the COLORS dict in code.py. They are in RGB format and can be modified or more can be added for your needs.
@@ -46,41 +49,46 @@ litclock_annotated.csv is sourced from https://github.com/JohannesNE/literature-
 1. Open a terminal and navigate to the folder containing these files and run `python .\csv_to_json.py`
 1. Make sure Circuit Python is installed on your Pico Pi
 1. Connect your Pico to your computer
-1. Upload the contents of circuit_python_files to your Pico
+1. Upload the contents of circuit_python_files to your Pico. This will take a while.
 
 ## settings.toml
 
 The following settings are for you to be able to configure certain parts of the display without changing actual code.
 
-| Setting                 | Description                                                                                              | Accepted Values/Type                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| CIRCUITPY_WIFI_SSID     | Name of your wifi.                                                                                       | String                                                                         |
-| CIRCUITPY_WIFI_PASSWORD | Password for your wifi                                                                                   | String                                                                         |
-| ADAFRUIT_AIO_USERNAME   | Username for your Adafruit AIO account.                                                                  | String                                                                         |
-| ADAFRUIT_AIO_KEY        | Access key for your Adafruit AIO account.                                                                | String                                                                         |
-| TIMEZONE                | Timezone you live in. [List of timezones.](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) | String                                                                         |
-| DISPLAY_MERIDIEM        | Display a.m. or p.m. in the time at the top of the screen. Is not applied if using military time.        | "true" or "false"                                                              |
-| USE_MILITARY_TIME       | Display time at the top of the screen in military time instead of 12 hour.                               | "true" or "false"                                                              |
-| SCREEN_OFF_TIME         | Time the screen should turn off. This will save power and increase the lifespan of your screen.          | String of array in format of "[hour, minute]"                                  |
-| SCREEN_ON_TIME          | Time the screen should turn on.                                                                          | String of array in format of "[hour, minutes]"                                 |
-| BACKGROUND_COLOR        | Color to choose for the background of the screen.                                                        | Options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
-| TEXT_COLOR              | Color for any text that is not the time of day in the quote.                                             | Options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
-| HIGHLIGHT_COLOR         | Color for the time in the quote.                                                                         | Options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
+| Setting                 | Description                                                                                              | Accepted Values/Type                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| CIRCUITPY_WIFI_SSID     | Name of your wifi.                                                                                       | String                                                                                |
+| CIRCUITPY_WIFI_PASSWORD | Password for your wifi                                                                                   | String                                                                                |
+| ADAFRUIT_AIO_USERNAME   | Username for your Adafruit AIO account.                                                                  | String                                                                                |
+| ADAFRUIT_AIO_KEY        | Access key for your Adafruit AIO account.                                                                | String                                                                                |
+| TIMEZONE                | Timezone you live in. [List of timezones.](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) | String                                                                                |
+| DISPLAY_MERIDIEM        | Display a.m. or p.m. in the time at the top of the screen. Is not applied if using military time.        | String as "true" or "false"                                                           |
+| USE_MILITARY_TIME       | Display time at the top of the screen in military time instead of 12 hour.                               | String as "true" or "false"                                                           |
+| SCREEN_OFF_TIME         | Time the screen should turn off. This will save power and increase the lifespan of your screen.          | String of array in format of "[hour, minute]"                                         |
+| SCREEN_ON_TIME          | Time the screen should turn on.                                                                          | String of array in format of "[hour, minutes]"                                        |
+| BACKGROUND_COLOR        | Color to choose for the background of the screen.                                                        | String options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
+| TEXT_COLOR              | Color for any text that is not the time of day in the quote.                                             | String options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
+| HIGHLIGHT_COLOR         | Color for the time in the quote.                                                                         | String options: "BLACK", "RED", "BLUE", "GREEN", "YELLOW", "CYAN", "MAGENTA", "WHITE" |
 
 ## Assembly Instructions:
 
 1. Print all of the pieces in the 3d_model_files folder
 2. Add the heat insert threads into each of the 4 corners of the front piece
+   ![front heatsert locations](images/front_heatsert_location.png)
 3. Heat insert threads into all 4 holes on the base mount
+   ![base heatsert locations](images/base_mount_heatsert_locations.png)
 4. Sand down the corners of the screen to fit in the 3D printed case. The corners just need to be rounded to match the metal around the mounting hole.
-5. Bolt the base mount to the front piece.
-6. Insert the screen into the front piece.
+5. Bolt the base mount to the front cover.
+   ![base to front bolt locations](images/mount_bolt_locations.png)
+6. Insert the screen into the front cover.
 7. Bolt the pico onto the pi mount piece using 4 M2 bolts and nuts. The pico should go on the smooth side of the plate. The side with the offset feet will sit on the screen. The Pico's USB port should face away from the GPIO pins on the screen.
 8. Sit the pi mount plate onto the screen so that the 4 holes align.
+   ![pico in front cover](images/pico_mount_in_front_cover.png)
 9. Solder wires from the pi to the screen. Pinout information can be found below.
 10. Plug the USB cable into the pi
 11. Sit the back cover over the pi and screen where the slot in the cover allows for the USB cable to exit the bottom left (left when viewing from the front) of the case
 12. Bolt the base plate onto the base mount and snug the screws when the desired any is set
+    ![base plate bolt locations](images/base_bolt_locations.png)
 13. Plug the USB cable into the power supply and wait for the screen to startup. This may take a few seconds depending on how quickly it can connect to your network.
 
 ## Pinouts:
@@ -89,7 +97,7 @@ The following settings are for you to be able to configure certain parts of the 
 
 | Pico Pin | Screen Pin # | Description |
 | -------- | ------------ | ----------- |
-| GP21     | 5            | cs          |
+| GP21     | 5            | CS          |
 | GP22     | 11           | Reset       |
 | GP1      | 10           | Int         |
 | GP18     | 8            | SCLK        |
@@ -98,7 +106,7 @@ The following settings are for you to be able to configure certain parts of the 
 
 ## Other Notes:
 
-- Other microcontroller boards than the Pico Pi W can be used. The 3D models will need updated and likely some code changes to support the correct pinout.
+- Other microcontroller boards than the Pico Pi W can be used. The 3D models will need updated and likely some code changes to support the correct pinout. You will also be limited to storage space as the quote files take up a lot of space.
 - A Pico W is required because the device needs to connect to the internet to keep the clock synchronized as there tends to be some time drift relying on internal time keeping.
 - If you want to add/edit/delete any quotes you can edit the litclock_annotated.csv file, delete the quotes off the pico, and then load the new quotes from the circuit_python_files/lib/quotes folder. Otherwise you may get errors about not enough storage space.
 - A few times of the day currently do not have quotes. If you find any please feel free to let me know and I can update the file with them. Current 11:46, 12:31, 13:36, and 18:44 are missing.
