@@ -16,7 +16,7 @@ import digitalio
 from adafruit_ra8875 import ra8875
 from adafruit_ra8875.ra8875 import color565
 import supervisor
-import json 
+import json
 
 COLORS = {
     "BLACK": color565(10, 0, 0),
@@ -48,7 +48,7 @@ USE_MILITARY_TIME = os.getenv("USE_MILITARY_TIME").lower() == "true"
 
 def timeToDecimal(time):
     return float(time[0]) + (float(time[1]) / 60)
-    
+
 SCREEN_OFF_TIME = timeToDecimal([int(x) for x in os.getenv("SCREEN_OFF_TIME").split(":")])
 SCREEN_ON_TIME = timeToDecimal([int(x) for x in os.getenv("SCREEN_ON_TIME").split(":")])
 
@@ -147,35 +147,35 @@ def displayTime(lastTime) -> None:
     time = ""
 
     hours = lastTime[0]
-    if USE_MILITARY_TIME: 
+    if USE_MILITARY_TIME:
         time = hours + ":" + lastTime[1]
-    else: 
+    else:
         meridiem = "a.m."
         if int(hours) == 0:
             hours = "12"
         elif int(hours) > 12:
             hours = str(int(hours) % 12)
             meridiem = "p.m."
-            
+
         time = hours + ":" + lastTime[1] + (" " + meridiem if DISPLAY_MERIDIEM else "")
 
         if time[0] == "0":
             time = time[1:]
-        
+
     display.txt_set_cursor(math.floor((MAX_X / 2) - ((AVERAGE_CHAR_WIDTH * len(time)) / 2)), 10)
     display.txt_write(time)
 
-def checkIfReloadNeeded(time): 
+def checkIfReloadNeeded(time):
     if time not in MISSING_QUOTES:
-        # This is a goofy solution, but after running for a long time 
-        # circuitpython seems to lose the ability to find files. 
-        # It will not throw an error, it just can't find them anymore. 
-        # if that happens, force a reload. 
+        # This is a goofy solution, but after running for a long time
+        # circuitpython seems to lose the ability to find files.
+        # It will not throw an error, it just can't find them anymore.
+        # if that happens, force a reload.
         print("Reloading")
-        supervisor.reload() 
-    else: 
-        print("Quote is known as missing") 
-    
+        supervisor.reload()
+    else:
+        print("Quote is known as missing")
+
 def getQuote(lastTime) -> None:
     quote = {
         "fullQuote": "No quote found for this time :( I'm sorry",
@@ -183,20 +183,20 @@ def getQuote(lastTime) -> None:
         "book": "No book found",
         "author": ""
     }
- 
+
     quotePath = "lib/quotes/" + lastTime[0] + "_" + lastTime[1] + ".json"
     try:
         # this will throw an OSError if path doesn't exist
         os.stat(quotePath)
-            
+
         with open(quotePath, "r") as file:
-            data = json.load(file)                    
+            data = json.load(file)
             randQuoteInd = random.randint(0, len(data) - 1)
             quote = data[randQuoteInd]
 
     except OSError:
-        # os.stat is kind of a dumb way to do this in circuitpython because 
-        # it just throws an error if the file isn't found. 
+        # os.stat is kind of a dumb way to do this in circuitpython because
+        # it just throws an error if the file isn't found.
         checkIfReloadNeeded(lastTime[0] + ":" + lastTime[1])
     except Exception as e:
         print(lastTime)
@@ -229,15 +229,15 @@ def splitQuote(quote) -> tuple[list[str], int, int]:
         elif quote["fullQuote"][i] == " ":
             nextSpace = -1
             for j in range(i + 1, len(quote["fullQuote"])):
-                found = False 
+                found = False
                 if quote["fullQuote"][j] == " ":
-                    found = True 
-                elif quote["fullQuote"][j] == "<" and j + 3 <= len(quote["fullQuote"]) - 1 and quote["fullQuote"][j : j + 4] == "<br>": 
-                    found = True 
-                
+                    found = True
+                elif quote["fullQuote"][j] == "<" and j + 3 <= len(quote["fullQuote"]) - 1 and quote["fullQuote"][j : j + 4] == "<br>":
+                    found = True
+
                 # I think this needs to handle the case if REPLACE_STR was found while getting next space
-                # to know the full length, but right now it is working and I don't think it should be. 
-                if found: 
+                # to know the full length, but right now it is working and I don't think it should be.
+                if found:
                     nextSpace = j - i
                     break
             if len(tempChars) + nextSpace > MAX_LINE_CHAR_COUNT or (nextSpace == -1 and len(tempChars) + len(quote["fullQuote"]) - i > MAX_LINE_CHAR_COUNT):
@@ -250,7 +250,7 @@ def splitQuote(quote) -> tuple[list[str], int, int]:
         if added and len(tempChars) > 0:
             forcedLines.append(tempChars)
             tempChars = ""
-            
+
         if addHighlight:
             # if we can't fit it in this line then add to forcedLines
             if len(tempChars) + len(quote["highlight"]) + HIGHLIGHT_SPACING > MAX_LINE_CHAR_COUNT:
@@ -274,25 +274,25 @@ def splitQuote(quote) -> tuple[list[str], int, int]:
     return forcedLines, highlightIndex, highlightSubIndex
 
 
-def displaySource(quote, lineLength) -> None:   
+def displaySource(quote, lineLength) -> None:
     author = "by " + quote["author"]
     authorWidth = len(author) * AVERAGE_CHAR_WIDTH
-    
-    title = "- " + quote["book"] 
+
+    title = "- " + quote["book"]
 
     maxSourceCharWidth = math.floor((MAX_X - (2 * AUTHOR_MARGIN)) / AVERAGE_CHAR_WIDTH)
-    
+
     if lineLength < 13:
         if len(title) >= maxSourceCharWidth:
-            title = title[: maxSourceCharWidth - 3] + "..." 
-            
+            title = title[: maxSourceCharWidth - 3] + "..."
+
         titleWidth = len(title) * AVERAGE_CHAR_WIDTH
-    
+
         titleX = math.floor(MAX_X - AUTHOR_MARGIN - titleWidth)
         authorX = math.floor(MAX_X - AUTHOR_MARGIN - authorWidth - (2 * AVERAGE_CHAR_WIDTH))
 
         authorTitleCombX = max(AUTHOR_MARGIN, min(titleX, authorX))
-        
+
         display.txt_set_cursor(authorTitleCombX, math.floor(MAX_Y - (LINE_HEIGHT * 2) - AUTHOR_MARGIN))
         display.txt_write(title)
         display.txt_set_cursor(authorTitleCombX + (2 * AVERAGE_CHAR_WIDTH), math.floor(MAX_Y - LINE_HEIGHT - AUTHOR_MARGIN))
@@ -301,10 +301,10 @@ def displaySource(quote, lineLength) -> None:
     else:
         combo = title + " " + author
         if len(combo) >= maxSourceCharWidth:
-            combo = title[: maxSourceCharWidth - len(author) - 4] + "... " + author 
-            
+            combo = title[: maxSourceCharWidth - len(author) - 4] + "... " + author
+
         comboWidth = len(combo) * AVERAGE_CHAR_WIDTH
-        
+
         comboX = max(0, math.floor(MAX_X - AUTHOR_MARGIN - comboWidth))
         display.txt_set_cursor(comboX, math.floor(MAX_Y - LINE_HEIGHT - AUTHOR_MARGIN))
         display.txt_write(combo)
@@ -339,6 +339,21 @@ def displayQuote(lastTime) -> None:
 
     displaySource(quote, len(forcedLines))
 
+def screenOn(lastTime) -> bool:
+    decimalCurrentTime = timeToDecimal(lastTime)
+        
+    # handle case of over midnight off 
+    if SCREEN_ON_TIME < SCREEN_OFF_TIME:
+        # between off time and midnight, so turn off 
+        if (decimalCurrentTime >= SCREEN_OFF_TIME and decimalCurrentTime < 23.99999) or (decimalCurrentTime < SCREEN_ON_TIME): 
+            return False 
+        return True
+    elif (decimalCurrentTime >= SCREEN_OFF_TIME):
+        if (decimalCurrentTime >= SCREEN_ON_TIME):
+            return True
+        return False 
+    return True 
+
 timesRan = 61
 lastTime = ["", ""]
 lastScreenState = True
@@ -346,10 +361,8 @@ while True:
     display.fill_rect(0, 0, MAX_X + 20, MAX_Y + 20, BACKGROUND_COLOR)
 
     lastTime, sleepTime, timesRan = getTime(timesRan, lastTime)
-    
-    decimalCurrentTime = timeToDecimal(lastTime)
-    
-    if (decimalCurrentTime >= SCREEN_OFF_TIME) and (decimalCurrentTime <= SCREEN_ON_TIME):
+
+    if not screenOn(lastTime):
         if lastScreenState:
             lastScreenState = False
             display.brightness(0)
